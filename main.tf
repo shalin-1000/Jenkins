@@ -1,7 +1,7 @@
 #VPC
 
-resource "aws_vpc" "Jenkins_VPC" {
-  cidr_block = "10.0.0.0/16"
+resource "aws_vpc" "Jenkins_VPC2" {
+  cidr_block = "172.0.0.0/16"
   tags = {
     Name = "Jenkis_VPC"
   }
@@ -10,9 +10,9 @@ resource "aws_vpc" "Jenkins_VPC" {
 
 #Subnet
 
-resource "aws_subnet" "Jenkins_Sub1" {
-  vpc_id            = aws_vpc.Jenkins_VPC.id
-  cidr_block        = "10.0.1.0/24"
+resource "aws_subnet" "Jenkins_Sub2" {
+  vpc_id            = aws_vpc.Jenkins_VPC2.id
+  cidr_block        = "172.0.1.0/24"
   availability_zone = var.availability_zones[0]
   tags = {
     Name = "Pub-Subnet"
@@ -23,7 +23,7 @@ resource "aws_subnet" "Jenkins_Sub1" {
 # Internetgateway
 
 resource "aws_internet_gateway" "Jen_IGW" {
-  vpc_id = aws_vpc.Jenkins_VPC.id
+  vpc_id = aws_vpc.Jenkins_VPC2.id
   tags = {
     Name = "Jenkins_IGW"
   }
@@ -32,8 +32,8 @@ resource "aws_internet_gateway" "Jen_IGW" {
 
 # RouteTable
 
-resource "aws_route_table" "RTA1" {
-  vpc_id = aws_vpc.Jenkins_VPC.id
+resource "aws_route_table" "RTA2" {
+  vpc_id = aws_vpc.Jenkins_VPC2.id
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.Jen_IGW.id
@@ -43,9 +43,9 @@ resource "aws_route_table" "RTA1" {
 
 # Associate Route Table
 
-resource "aws_route_table_association" "RTA" {
-  subnet_id      = aws_subnet.Jenkins_Sub1.id
-  route_table_id = aws_route_table.RTA1.id
+resource "aws_route_table_association" "RTA2" {
+  subnet_id      = aws_subnet.Jenkins_Sub2.id
+  route_table_id = aws_route_table.RTA2.id
 
 }
 
@@ -54,7 +54,7 @@ resource "aws_route_table_association" "RTA" {
 resource "aws_security_group" "sg1a" {
   name        = "webserver"
   description = "allow traffic for webserver"
-  vpc_id      = aws_vpc.Jenkins_VPC.id
+  vpc_id      = aws_vpc.Jenkins_VPC2.id
 
   ingress {
     description = "SSH from Anywhere"
@@ -95,18 +95,14 @@ resource "aws_security_group" "sg1a" {
 
 resource "aws_instance" "jenkis" {
   ami                    = var.amis[var.region]
-  count                  = 3
+  count                  = 1
   instance_type          = var.instance_type
   key_name               = var.key_name
-  subnet_id              = aws_subnet.Jenkins_Sub1.id
+  subnet_id              = aws_subnet.Jenkins_Sub2.id
   vpc_security_group_ids = [aws_security_group.sg1a.id]
   tags = {
-    "Name" = "Jenkins-Server-${count.index}"
+    "Name" = "Spinned up Jenkins"
   }
 
   associate_public_ip_address = true
-
-user_data = (count.index == 0) ? filebase64("${path.module}/jenkins.sh") : filebase64("${path.module}/docker.sh")  
-
-
 }
